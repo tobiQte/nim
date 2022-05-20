@@ -101,7 +101,14 @@ class NimAI():
         Return the Q-value for the state `state` and the action `action`.
         If no Q-value exists yet in `self.q`, return 0.
         """
-        raise NotImplementedError
+
+        # check if Q-Value exist
+        if (tuple(state), action) in self.q:
+            q_value = self.q[(tuple(state), action)]
+        else:
+            q_value = 0
+
+        return q_value
 
     def update_q_value(self, state, action, old_q, reward, future_rewards):
         """
@@ -118,7 +125,9 @@ class NimAI():
         `alpha` is the learning rate, and `new value estimate`
         is the sum of the current reward and estimated future rewards.
         """
-        raise NotImplementedError
+
+        # calculate new Q value and assign to self.q
+        self.q[(tuple(state), action)] = old_q + self.alpha * (reward + future_rewards - old_q)
 
     def best_future_reward(self, state):
         """
@@ -130,7 +139,27 @@ class NimAI():
         Q-value in `self.q`. If there are no available actions in
         `state`, return 0.
         """
-        raise NotImplementedError
+        max_q = 0
+        # get list of all available actions in form (i, j)
+        actions_list = Nim.available_actions(state)
+
+        # if no available actions in state, return 0
+        if actions_list == "":
+            return 0
+
+        else:
+            # loop over actions i and j
+            for action in actions_list:
+
+                # get Q Value for action. get_q_value will return 0 if no action
+                q_value = self.get_q_value(tuple(state), action)
+
+                # update max_q if new value is bigger
+                if max_q < q_value:
+                    max_q = q_value
+
+            # Return Max_q value
+            return max_q
 
     def choose_action(self, state, epsilon=True):
         """
@@ -147,8 +176,31 @@ class NimAI():
         If multiple actions have the same Q-value, any of those
         options is an acceptable return value.
         """
-        raise NotImplementedError
 
+        best = None
+        best_reward = 0
+        action_list = list(Nim.available_actions(list(state)))
+
+        #loop over actions ins list
+        for action in action_list:
+
+            # check if current best action is none or if the q value is bigger than the current best reward
+            if best is None or self.get_q_value(state, action) > best_reward:
+
+                #adjust best reward and best action for condition tracking
+                best_reward = self.get_q_value(state, action)
+                best = action
+
+        if epsilon:
+
+            #adjust the weights for making random choice.
+            weights = [(1 - self.epsilon) if action == best else
+                       (self.epsilon / (len(action_list) - 1)) for action in action_list]
+
+            #make random choice
+            best = random.choices(action_list, weights=weights, k=1)[0]
+
+        return best
 
 def train(n):
     """
